@@ -1,0 +1,11 @@
+# Build output
+dist/
+
+# Development output
+main.js
+styles.css
+data.json
+
+# Build artifacts
+.turbo
+*.tsbuildinfo  

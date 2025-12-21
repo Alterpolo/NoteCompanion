@@ -1,0 +1,39 @@
+{
+  "compilerOptions": {
+    "target": "ES2018",
+    "module": "commonjs",
+    "strict": false,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "jsx": "react-jsx",
+    "composite": true,
+    "declaration": true,
+    "baseUrl": ".",
+    "paths": {
+      "@file-organizer/*": [
+        "packages/*/src"
+      ],
+      "@/*": [
+        "packages/web/*"
+      ]
+    }
+  },
+  "references": [
+    {
+      "path": "packages/shared"
+    },
+    {
+      "path": "packages/plugin"
+    },
+    {
+      "path": "packages/web"
+    },
+    {
+      "path": "packages/mobile"
+    }
+  ],
+  "exclude": [
+    "node_modules"
+  ]
+}
