@@ -134,10 +134,40 @@ myNewTool: {
 
 ## Tech Stack Details
 
-- **Web**: Next.js 15.1, React 19, Drizzle ORM, PostgreSQL, TailwindCSS v4
+- **Web**: Next.js 15.1.11, React 19, Drizzle ORM, PostgreSQL, TailwindCSS v4
 - **Plugin**: TypeScript, React 19, TailwindCSS v3 (with Obsidian variables)
 - **Mobile**: Expo SDK 52, React Native 0.76, NativeWind
-- **AI SDKs**: Vercel AI SDK (`ai` package), OpenAI, Anthropic, Google, Groq, Mistral
+- **AI SDKs**: Vercel AI SDK (`ai` package), OpenAI, Anthropic, Google, Groq, Mistral, DeepSeek
+
+## Self-Hosted Deployment
+
+A self-hosted instance is deployed on VPS (168.231.76.105):
+
+- **URL**: https://notecomp.neodromes.eu
+- **Docker**: `/opt/notecompanion/` with `docker-compose.traefik.yml`
+- **Config**: `.env` file with DeepSeek API via OpenAI-compatible endpoint
+- **Traefik**: Uses `mytlschallenge` certresolver, `root_default` network
+
+### VPS Commands
+
+```bash
+# SSH alias configured
+ssh hostinger-vps
+
+# Restart container
+cd /opt/notecompanion && docker compose -f docker-compose.traefik.yml restart
+
+# View logs
+docker logs notecompanion -f
+
+# Rebuild after code changes
+cd /opt/notecompanion && git pull && docker compose -f docker-compose.traefik.yml up -d --build
+```
+
+### Obsidian Plugin Config
+
+- Server URL: `https://notecomp.neodromes.eu`
+- API Key: Value of `SOLO_API_KEY` in `.env`
 
 ## Memory System
 
