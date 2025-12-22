@@ -17,12 +17,20 @@ import os from 'os';
 import crypto from 'crypto';
 
 export const maxDuration = 800; // This function can run for a maximum of 5 seconds
+
+// Get base URL from environment - NO fallback to api.openai.com
+const LLM_BASE_URL = process.env.OPENAI_API_BASE || process.env.OPENAI_BASE_URL;
+const LLM_MODEL = process.env.OPENAI_MODEL || 'gpt-4o';
+
 // --- OpenAI Client for Image Generation ---
 // Lazy initialization to avoid build-time errors when API key is not set
 function getOpenAIImageClient() {
+  if (!LLM_BASE_URL) {
+    throw new Error('OPENAI_API_BASE or OPENAI_BASE_URL must be set');
+  }
   return new OpenAI({
     apiKey: process.env.OPENAI_API_KEY || '',
-    baseURL: process.env.OPENAI_API_BASE || 'https://api.openai.com/v1',
+    baseURL: LLM_BASE_URL,
   });
 }
 
@@ -77,19 +85,22 @@ async function downloadFromR2(key: string): Promise<Buffer> {
   }
 }
 
-// Helper function to process image with gpt-4o
+// Helper function to process image with vision model
 async function processImageWithGPT4one(
   imageUrl: string
 ): Promise<{ textContent: string; tokensUsed: number }> {
   try {
-    console.log('Processing image with gpt-4o for OCR...');
-    const openai = createOpenAI({
+    if (!LLM_BASE_URL) {
+      throw new Error('OPENAI_API_BASE or OPENAI_BASE_URL must be set');
+    }
+    console.log(`Processing image with ${LLM_MODEL} for OCR...`);
+    const llmProvider = createOpenAI({
       apiKey: process.env.OPENAI_API_KEY,
-      baseURL: process.env.OPENAI_API_BASE || 'https://api.openai.com/v1',
+      baseURL: LLM_BASE_URL,
     });
     console.log(`Processing OCR for image: ${imageUrl}`);
     const { object, usage } = await generateObject({
-      model: openai('gpt-4o') as any, // Type assertion for AI SDK v1/v2 compatibility
+      model: llmProvider(LLM_MODEL) as any, // Type assertion for AI SDK v1/v2 compatibility
       schema: z.object({ markdown: z.string() }),
       messages: [
         {
@@ -102,11 +113,11 @@ async function processImageWithGPT4one(
     const textContent = object.markdown || '';
     const tokensUsed = usage?.totalTokens ?? Math.ceil(textContent.length / 4);
     console.log(
-      `gpt-4o OCR extracted ${textContent.length} chars, used approx ${tokensUsed} tokens`
+      `${LLM_MODEL} OCR extracted ${textContent.length} chars, used approx ${tokensUsed} tokens`
     );
     return { textContent, tokensUsed };
   } catch (error) {
-    console.error('Error processing image with gpt-4o OCR:', error);
+    console.error(`Error processing image with ${LLM_MODEL} OCR:`, error);
     return {
       textContent: `Error processing image OCR: ${
         error instanceof Error ? error.message : String(error)

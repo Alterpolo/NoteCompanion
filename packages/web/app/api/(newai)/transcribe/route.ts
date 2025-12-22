@@ -161,9 +161,16 @@ export async function POST(request: Request) {
       );
     }
 
+    const baseURL = process.env.OPENAI_API_BASE || process.env.OPENAI_BASE_URL;
+    if (!baseURL) {
+      return NextResponse.json(
+        { error: 'OPENAI_API_BASE or OPENAI_BASE_URL must be set' },
+        { status: 500 }
+      );
+    }
     const openai = new OpenAI({
       apiKey: process.env.OPENAI_API_KEY,
-      baseURL: process.env.OPENAI_API_BASE || 'https://api.openai.com/v1',
+      baseURL,
     });
 
     // Check file size
@@ -270,10 +277,18 @@ async function handlePresignedUrlTranscription(
       );
     }
 
-    // Transcribe using OpenAI
+    // Transcribe using OpenAI-compatible API
+    const baseURL = process.env.OPENAI_API_BASE || process.env.OPENAI_BASE_URL;
+    if (!baseURL) {
+      await fsPromises.unlink(tempFilePath);
+      return NextResponse.json(
+        { error: 'OPENAI_API_BASE or OPENAI_BASE_URL must be set' },
+        { status: 500 }
+      );
+    }
     const openai = new OpenAI({
       apiKey: process.env.OPENAI_API_KEY,
-      baseURL: process.env.OPENAI_API_BASE || 'https://api.openai.com/v1',
+      baseURL,
     });
 
     console.log(

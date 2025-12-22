@@ -1,31 +1,40 @@
 import { createOpenAI } from '@ai-sdk/openai';
 import { LanguageModel } from 'ai';
 
-// Create OpenAI provider with configurable baseURL for local LLM support
-const openaiProvider = createOpenAI({
+// Get base URL from environment - NO fallback to api.openai.com
+// Supports: DeepSeek, OpenAI, or any OpenAI-compatible API
+const BASE_URL = process.env.OPENAI_API_BASE || process.env.OPENAI_BASE_URL;
+if (!BASE_URL) {
+  console.warn('[models] WARNING: OPENAI_API_BASE or OPENAI_BASE_URL not set. API calls may fail.');
+}
+
+// Get model from environment or use default
+const DEFAULT_MODEL_NAME = process.env.OPENAI_MODEL || 'gpt-4o-mini';
+
+// Create OpenAI-compatible provider with explicit baseURL (no fallback)
+const llmProvider = createOpenAI({
   apiKey: process.env.OPENAI_API_KEY || '',
-  baseURL: process.env.OPENAI_API_BASE || 'https://api.openai.com/v1',
+  baseURL: BASE_URL,
 });
 
-// Always use gpt-4o-mini - ignore any model parameter from client
-// Note: Using gpt-4o-mini for compatibility with @ai-sdk/openai v1.2.2
-// gpt-4.1-mini is essentially the same model (just a newer name)
-const DEFAULT_MODEL = openaiProvider('gpt-4o-mini');
-
 /**
- * Get the default model for chat completion
- * Note: We ignore any model parameter from the client to ensure consistency
+ * Get the configured model for chat completion
+ * Model is configurable via OPENAI_MODEL env var
  */
-export const getModel = (_name?: string): LanguageModel => {
-  return DEFAULT_MODEL as LanguageModel;
+export const getModel = (name?: string): LanguageModel => {
+  const modelName = name || DEFAULT_MODEL_NAME;
+  return llmProvider(modelName) as LanguageModel;
 };
 
 /**
- * Get the default model with Responses API (supports web search)
- * Note: In v1.2.2, responses() may not be available, so we use the regular model
+ * Get the model for responses (same as getModel)
+ * Web search availability depends on the provider
  */
 export const getResponsesModel = (): LanguageModel => {
-  // In v1.2.2, responses() might not exist, so use regular model
-  // The Responses API features may not be available in this version
-  return DEFAULT_MODEL as LanguageModel;
+  return llmProvider(DEFAULT_MODEL_NAME) as LanguageModel;
 };
+
+/**
+ * Get the raw provider for advanced usage (e.g., web search tools)
+ */
+export const getLLMProvider = () => llmProvider;

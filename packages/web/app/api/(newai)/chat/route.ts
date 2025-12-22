@@ -7,8 +7,7 @@ import {
 import { NextResponse, NextRequest } from 'next/server';
 import { incrementAndLogTokenUsage } from '@/lib/incrementAndLogTokenUsage';
 import { handleAuthorizationV2 } from '@/lib/handleAuthorization';
-import { openai } from '@ai-sdk/openai';
-import { getModel, getResponsesModel } from '@/lib/models';
+import { getModel, getResponsesModel, getLLMProvider } from '@/lib/models';
 import { getChatSystemPrompt } from '@/lib/prompts/chat-prompt';
 import { chatTools } from './tools';
 
@@ -375,7 +374,7 @@ export async function POST(req: NextRequest) {
             messages: coreMessages, // Use converted messages
             tools: {
               ...chatTools,
-              web_search_preview: openai.tools.webSearchPreview({
+              web_search_preview: getLLMProvider().tools.webSearchPreview({
                 searchContextSize: deepSearch ? 'high' : 'medium',
               }) as any, // Type cast for AI SDK v2 compatibility
             },
