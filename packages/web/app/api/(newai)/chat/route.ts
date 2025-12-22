@@ -7,7 +7,7 @@ import {
 import { NextResponse, NextRequest } from 'next/server';
 import { incrementAndLogTokenUsage } from '@/lib/incrementAndLogTokenUsage';
 import { handleAuthorizationV2 } from '@/lib/handleAuthorization';
-import { getModel, getResponsesModel, getLLMProvider } from '@/lib/models';
+import { getModel, getResponsesModel, getLLMProvider, truncateContext, estimateTokens } from '@/lib/models';
 import { getChatSystemPrompt } from '@/lib/prompts/chat-prompt';
 import { chatTools } from './tools';
 
@@ -271,6 +271,14 @@ export async function POST(req: NextRequest) {
                 return `File: ${file.title}\n\nContent:\n${file.content}\nPath: ${file.path} Reference: ${file.reference}`;
               })
               .join('\n\n') || '';
+        }
+
+        // Truncate context if too long for the model
+        const originalLength = estimateTokens(contextString);
+        contextString = truncateContext(contextString);
+        const truncatedLength = estimateTokens(contextString);
+        if (originalLength !== truncatedLength) {
+          console.log(`[Chat API] Context truncated: ${originalLength} -> ${truncatedLength} tokens`);
         }
 
         dataStream.writeData('initialized call');
