@@ -1,0 +1,41 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    expose:
+      - "3000"
+    environment:
+      - PORT=3000
+      - NODE_ENV=production
+      - ENABLE_USER_MANAGEMENT=false
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - OPENAI_API_BASE=${OPENAI_API_BASE:-${OPENAI_BASE_URL}}
+      - OPENAI_BASE_URL=${OPENAI_BASE_URL:-${OPENAI_API_BASE}}
+      - OPENAI_MODEL=${OPENAI_MODEL}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - GOOGLE_GENERATIVE_AI_API_KEY=${GOOGLE_GENERATIVE_AI_API_KEY}
+      - GROQ_API_KEY=${GROQ_API_KEY}
+      - POSTGRES_URL=${POSTGRES_URL}
+      - R2_BUCKET=${R2_BUCKET}
+      - R2_ENDPOINT=${R2_ENDPOINT}
+      - R2_ACCESS_KEY_ID=${R2_ACCESS_KEY_ID}
+      - R2_SECRET_ACCESS_KEY=${R2_SECRET_ACCESS_KEY}
+      - R2_PUBLIC_URL=${R2_PUBLIC_URL}
+      - R2_REGION=${R2_REGION}
+      - SOLO_API_KEY=${SOLO_API_KEY}
+      - OLLAMA_API_URL=${OLLAMA_API_URL}
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.notecompanion.rule=Host(`notecompanion.neodromes.eu`)"
+      - "traefik.http.routers.notecompanion.entrypoints=websecure"
+      - "traefik.http.routers.notecompanion.tls=true"
+      - "traefik.http.routers.notecompanion.tls.certresolver=letsencrypt"
+      - "traefik.http.services.notecompanion.loadbalancer.server.port=3000"
+    networks:
+      - traefik-public
+
+networks:
+  traefik-public:
+    external: true
