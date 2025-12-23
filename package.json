@@ -24,7 +24,9 @@
       "xcode@3.0.1": "patches/xcode@3.0.1.patch"
     },
     "overrides": {
-      "zod": "^3.25.76"
+      "zod": "^3.25.76",
+      "form-data": "^4.0.5",
+      "axios": "^1.13.2"
     }
   }
 }
