@@ -24,8 +24,13 @@ pnpm --filter web dev       # Web app (port 3010)
 pnpm --filter mobile start  # Mobile app (Expo)
 
 # Testing
-pnpm --filter web test      # Jest tests for web
-pnpm --filter web test:watch
+pnpm --filter web test              # Jest tests for web
+pnpm --filter web test:watch        # Watch mode
+pnpm --filter web test path/to/file # Single test file
+
+# Type checking
+pnpm --filter web ts:check          # Web package
+pnpm --filter mobile typecheck      # Mobile package
 
 # Linting
 pnpm lint
@@ -38,6 +43,9 @@ pnpm --filter web db:studio    # Open Drizzle Studio
 # Mobile builds
 pnpm --filter mobile build:ios
 pnpm --filter mobile build:android
+
+# Android build (WSL)
+cd packages/mobile/android && ./gradlew assembleDebug
 ```
 
 ## Architecture
@@ -46,7 +54,7 @@ pnpm --filter mobile build:android
 
 - **packages/plugin/** - Obsidian plugin (TypeScript, React 19, esbuild)
 - **packages/web/** - Next.js 15 backend (Drizzle ORM, Clerk auth, Stripe)
-- **packages/mobile/** - React Native/Expo SDK 52 app
+- **packages/mobile/** - React Native/Expo SDK 54 app
 - **packages/landing/** - Marketing website (Next.js)
 
 ### Core Workflow
@@ -134,10 +142,16 @@ myNewTool: {
 
 ## Tech Stack Details
 
-- **Web**: Next.js 15.1.11, React 19, Drizzle ORM, PostgreSQL, TailwindCSS v4
-- **Plugin**: TypeScript, React 19, TailwindCSS v3 (with Obsidian variables)
-- **Mobile**: Expo SDK 52, React Native 0.76, NativeWind
+- **Web**: Next.js 15, React 19, Drizzle ORM, PostgreSQL, TailwindCSS v4
+- **Plugin**: TypeScript, React 19, TailwindCSS v3 (with `fo-` prefix and Obsidian CSS variables)
+- **Mobile**: Expo SDK 54, React Native 0.81, NativeWind
 - **AI SDKs**: Vercel AI SDK (`ai` package), OpenAI, Anthropic, Google, Groq, Mistral, DeepSeek
+
+## Code Conventions
+
+- **File naming**: Always use kebab-case (e.g., `my-component.tsx`, `file-handler.ts`)
+- **Main branch**: `master`
+- **TypeScript**: Strict mode enabled across all packages
 
 ## Self-Hosted Deployment
 
@@ -168,6 +182,41 @@ cd /opt/notecompanion && git pull && docker compose -f docker-compose.traefik.ym
 
 - Server URL: `https://notecomp.neodromes.eu`
 - API Key: Value of `SOLO_API_KEY` in `.env`
+
+## Android Build Setup (WSL with Windows SDK)
+
+### Build Process
+
+```bash
+cd packages/mobile/android
+./gradlew assembleDebug
+```
+
+APK output: `packages/mobile/android/app/build/outputs/apk/debug/app-debug.apk`
+
+### Install on Device/Emulator
+
+```bash
+adb devices                    # Verify connection
+adb install packages/mobile/android/app/build/outputs/apk/debug/app-debug.apk
+```
+
+### WSL + Windows SDK Troubleshooting
+
+When building from WSL with Windows Android SDK, you may need to create symlinks for build tools (Gradle looks for tools without `.exe` extension):
+
+```bash
+cd /mnt/c/Users/<USERNAME>/AppData/Local/Android/Sdk/build-tools/<VERSION>
+for exe in *.exe; do
+  base=${exe%.exe}
+  [ ! -e "$base" ] && ln -sf "$exe" "$base"
+done
+```
+
+**Common issues**:
+- "AAPT not found": Create symlinks as shown above
+- "UNC paths not supported": Build from WSL, not Windows CMD
+- First build takes 5-10 minutes (native module compilation is normal)
 
 ## Memory System
 
