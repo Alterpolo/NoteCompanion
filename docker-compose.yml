@@ -7,6 +7,9 @@ services:
       - "3000:3000"
     environment:
       - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - OPENAI_API_BASE=${OPENAI_API_BASE:-${OPENAI_BASE_URL}}
+      - OPENAI_BASE_URL=${OPENAI_BASE_URL:-${OPENAI_API_BASE}}
+      - OPENAI_MODEL=${OPENAI_MODEL}
       - SOLO_API_KEY=${SOLO_API_KEY}
       - MODEL_VISION=${MODEL_VISION}
       - MODEL_TEXT=${MODEL_TEXT}
@@ -14,5 +17,28 @@ services:
       - MODEL_CLASSIFY=${MODEL_CLASSIFY}
       - MODEL_TAGGING=${MODEL_TAGGING}
       - MODEL_FOLDERS=${MODEL_FOLDERS}
-
       - OLLAMA_API_URL=${OLLAMA_API_URL}
+      - POSTGRES_URL=postgresql://notecompanion:${POSTGRES_PASSWORD:-notecompanion123}@db:5432/notecompanion
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      - POSTGRES_USER=notecompanion
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-notecompanion123}
+      - POSTGRES_DB=notecompanion
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U notecompanion -d notecompanion"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    # Décommentez pour exposer PostgreSQL sur le host (debug)
+    # ports:
+    #   - "5432:5432"
+
+volumes:
+  postgres_data:

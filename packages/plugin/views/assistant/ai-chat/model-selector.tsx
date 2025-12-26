@@ -5,12 +5,13 @@ import { usePlugin } from '../provider';
 // Add a mapping for display names
 const MODEL_DISPLAY_NAMES: Record<ModelType, string> = {
   'gpt-4o-mini': 'Cloud',
-  'custom': 'Ollama Model'
+  'cloud': 'Cloud',
+  'custom': 'Local LLM'
 } as const;
 
 // Helper to get display name
 const getDisplayName = (model: ModelType): string => {
-  return MODEL_DISPLAY_NAMES[model] || model;
+  return MODEL_DISPLAY_NAMES[model] || 'Cloud';
 };
 
 interface ModelSelectorProps {
@@ -33,8 +34,8 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
       return;
     }
     onModelSelect(model);
-    if (model === "gpt-4o-mini" || model === "llama3.2") {
-      plugin.settings.selectedModel = model;
+    if (model === "cloud" || model === "gpt-4o-mini" || model === "llama3.2") {
+      plugin.settings.selectedModel = model as "cloud" | "gpt-4o-mini" | "llama3.2";
     }
     await plugin.saveSettings();
     setIsModelSelectorOpen(false);
@@ -42,7 +43,7 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
 
   const handleCustomModelSave = async () => {
     plugin.settings.customModelName = customModel;
-    plugin.settings.selectedModel = customModel as "gpt-4o-mini" | "llama3.2";
+    plugin.settings.selectedModel = customModel as "cloud" | "gpt-4o-mini" | "llama3.2";
     await plugin.saveSettings();
     onModelSelect(customModel);
     setIsCustomizing(false);
@@ -78,10 +79,10 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
           <div className="absolute bottom-full right-0 mb-1 bg-[--background-primary] border border-[--background-modifier-border]">
             <div className="py-1">
               <div
-                onClick={() => handleModelSelect("gpt-4o-mini")}
+                onClick={() => handleModelSelect("cloud")}
                 className="cursor-pointer block w-full text-left px-4 py-2 text-sm text-[--text-normal] hover:bg-[--background-modifier-hover]"
               >
-                {getDisplayName("gpt-4o-mini")}
+                {getDisplayName("cloud")}
               </div>
 
               {isCustomizing ? (

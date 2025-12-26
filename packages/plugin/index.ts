@@ -121,9 +121,10 @@ export default class FileOrganizer extends Plugin {
   async loadSettings() {
     this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
 
-    // Migration: Fix old gpt-4.1-mini model name to gpt-4o-mini
-    if (this.settings.selectedModel === ("gpt-4.1-mini" as any)) {
-      this.settings.selectedModel = "gpt-4o-mini";
+    // Migration: Fix old model names to "cloud"
+    if (this.settings.selectedModel === ("gpt-4.1-mini" as any) || 
+        this.settings.selectedModel === ("gpt-4o-mini" as any)) {
+      this.settings.selectedModel = "cloud";
       await this.saveSettings();
     }
   }

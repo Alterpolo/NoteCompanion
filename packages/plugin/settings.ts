@@ -36,7 +36,7 @@ export class FileOrganizerSettings {
   enableDeepSearch = false;
   showLocalLLMInChat = false;
   customFolderInstructions = "";
-  selectedModel: "gpt-4o-mini" | "llama3.2" = "gpt-4o-mini";
+  selectedModel: "cloud" | "gpt-4o-mini" | "llama3.2" = "cloud";
   customModelName = "llama3.2";
   tagScoreThreshold = 70;
   formatBehavior: "override" | "newFile" | "append" = "override";

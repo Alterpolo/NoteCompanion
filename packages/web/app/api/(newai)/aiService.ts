@@ -390,9 +390,13 @@ export async function generateTranscriptFromAudio(
   fileExtension: string,
   openaiApiKey: string
 ): Promise<string> {
+  const baseURL = process.env.OPENAI_API_BASE || process.env.OPENAI_BASE_URL;
+  if (!baseURL) {
+    throw new Error('OPENAI_API_BASE or OPENAI_BASE_URL must be set for audio transcription');
+  }
   const openai = new OpenAI({
     apiKey: openaiApiKey,
-    baseURL: process.env.OPENAI_API_BASE || 'https://api.openai.com/v1',
+    baseURL,
     dangerouslyAllowBrowser: true,
   });
 

@@ -1,0 +1,38 @@
+services:
+  notecompanion:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: notecompanion
+    restart: unless-stopped
+    expose:
+      - "3000"
+    environment:
+      - PORT=3000
+      - NODE_ENV=production
+      - ENABLE_USER_MANAGEMENT=false
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - OPENAI_API_BASE=${OPENAI_API_BASE:-${OPENAI_BASE_URL}}
+      - OPENAI_BASE_URL=${OPENAI_BASE_URL:-${OPENAI_API_BASE}}
+      - OPENAI_MODEL=${OPENAI_MODEL}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - GOOGLE_GENERATIVE_AI_API_KEY=${GOOGLE_GENERATIVE_AI_API_KEY}
+      - GROQ_API_KEY=${GROQ_API_KEY}
+      - SOLO_API_KEY=${SOLO_API_KEY}
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.notecompanion.rule=Host(`notecomp.neodromes.eu`)
+      - traefik.http.routers.notecompanion.entrypoints=web,websecure
+      - traefik.http.routers.notecompanion.tls=true
+      - traefik.http.routers.notecompanion.tls.certresolver=mytlschallenge
+      - traefik.http.services.notecompanion.loadbalancer.server.port=3000
+      - traefik.docker.network=root_default
+    networks:
+      - traefik
+      - root_default
+
+networks:
+  traefik:
+    external: true
+  root_default:
+    external: true
