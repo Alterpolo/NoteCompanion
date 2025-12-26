@@ -19,10 +19,17 @@ import {
   isWebSearchAvailable,
 } from '@/lib/models';
 
-// OpenAI client for webSearchPreview tool (this tool is OpenAI-specific)
-const openaiForWebSearch = createOpenAI({
-  apiKey: process.env.OPENAI_API_KEY || '',
-});
+// Lazy-initialized OpenAI client for webSearchPreview tool (this tool is OpenAI-specific)
+// Lazy initialization avoids issues with Jest mocking during test imports
+let _openaiForWebSearch: ReturnType<typeof createOpenAI> | null = null;
+const getOpenAIForWebSearch = () => {
+  if (!_openaiForWebSearch) {
+    _openaiForWebSearch = createOpenAI({
+      apiKey: process.env.OPENAI_API_KEY || '',
+    });
+  }
+  return _openaiForWebSearch;
+};
 import { getChatSystemPrompt } from '@/lib/prompts/chat-prompt';
 import { chatTools } from './tools';
 
@@ -448,7 +455,7 @@ export async function POST(req: NextRequest) {
               tools: {
                 ...chatTools,
                 // Use OpenAI provider explicitly for webSearchPreview (only available on OpenAI)
-                web_search_preview: openaiForWebSearch.tools.webSearchPreview({
+                web_search_preview: getOpenAIForWebSearch().tools.webSearchPreview({
                   searchContextSize: deepSearch ? 'high' : 'medium',
                 }) as any, // Type cast for AI SDK v2 compatibility
               },
