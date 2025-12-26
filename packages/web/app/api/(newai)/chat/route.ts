@@ -4,6 +4,7 @@ import {
   createDataStreamResponse,
   generateId,
 } from 'ai';
+import { createOpenAI } from '@ai-sdk/openai';
 import { NextResponse, NextRequest } from 'next/server';
 import { incrementAndLogTokenUsage } from '@/lib/incrementAndLogTokenUsage';
 import { handleAuthorizationV2 } from '@/lib/handleAuthorization';
@@ -17,6 +18,11 @@ import {
   getWebSearchProvider,
   isWebSearchAvailable,
 } from '@/lib/models';
+
+// OpenAI client for webSearchPreview tool (this tool is OpenAI-specific)
+const openaiForWebSearch = createOpenAI({
+  apiKey: process.env.OPENAI_API_KEY || '',
+});
 import { getChatSystemPrompt } from '@/lib/prompts/chat-prompt';
 import { chatTools } from './tools';
 
@@ -441,7 +447,8 @@ export async function POST(req: NextRequest) {
               messages: coreMessages,
               tools: {
                 ...chatTools,
-                web_search_preview: getLLMProvider().tools.webSearchPreview({
+                // Use OpenAI provider explicitly for webSearchPreview (only available on OpenAI)
+                web_search_preview: openaiForWebSearch.tools.webSearchPreview({
                   searchContextSize: deepSearch ? 'high' : 'medium',
                 }) as any, // Type cast for AI SDK v2 compatibility
               },
