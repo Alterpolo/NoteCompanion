@@ -7,7 +7,16 @@ import {
 import { NextResponse, NextRequest } from 'next/server';
 import { incrementAndLogTokenUsage } from '@/lib/incrementAndLogTokenUsage';
 import { handleAuthorizationV2 } from '@/lib/handleAuthorization';
-import { getModel, getResponsesModel, getLLMProvider, truncateContext, estimateTokens } from '@/lib/models';
+import {
+  getModel,
+  getResponsesModel,
+  getLLMProvider,
+  truncateContext,
+  estimateTokens,
+  getWebSearchModel,
+  getWebSearchProvider,
+  isWebSearchAvailable,
+} from '@/lib/models';
 import { getChatSystemPrompt } from '@/lib/prompts/chat-prompt';
 import { chatTools } from './tools';
 
@@ -375,45 +384,94 @@ export async function POST(req: NextRequest) {
             `[Chat API] Converted ${messages.length} messages to ${coreMessages.length} core messages (search mode)`
           );
 
-          const result = await streamText({
-            model: getResponsesModel() as any,
-            system: getChatSystemPrompt(contextString, currentDatetime),
-            maxSteps: 5,
-            messages: coreMessages, // Use converted messages
-            tools: {
-              ...chatTools,
-              web_search_preview: getLLMProvider().tools.webSearchPreview({
-                searchContextSize: deepSearch ? 'high' : 'medium',
-              }) as any, // Type cast for AI SDK v2 compatibility
-            },
-            onFinish: async ({ usage, sources }) => {
-              console.log('Token usage:', usage);
-              console.log('Search sources:', sources);
+          // Check which web search provider to use
+          const webSearchProviderConfig = getWebSearchProvider();
+          const useNativeWebSearch = webSearchProviderConfig.supportsWebSearch &&
+            webSearchProviderConfig.id !== 'openai'; // OpenAI uses tool, others have native search
 
-              if (sources && sources.length > 0) {
-                // Map the sources to our expected citation format
-                const citations = sources.map((source) => ({
-                  url: source.url,
-                  title: source.title || source.url,
-                  // Default to 0 for indices if not provided
-                  startIndex: 0,
-                  endIndex: 0,
-                }));
+          console.log(`[Chat API] Web search provider: ${webSearchProviderConfig.name}, Native: ${useNativeWebSearch}`);
 
-                if (citations.length > 0) {
-                  dataStream.writeMessageAnnotation({
-                    type: 'search-results',
-                    citations,
-                  });
+          if (useNativeWebSearch && isWebSearchAvailable()) {
+            // Use native web search (Perplexity, MiniMax, GLM)
+            // These providers have web search built into the model - no tool needed
+            console.log(`[Chat API] Using native web search with ${webSearchProviderConfig.name}`);
+
+            const result = await streamText({
+              model: getWebSearchModel() as any,
+              system: getChatSystemPrompt(contextString, currentDatetime) +
+                '\n\nYou have access to real-time web search. Search the internet to find current information when needed.',
+              maxSteps: 5,
+              messages: coreMessages,
+              tools: chatTools, // Regular tools only, web search is native
+              onFinish: async ({ usage, sources }) => {
+                console.log('Token usage:', usage);
+                console.log('Search sources:', sources);
+
+                // Perplexity and others return sources/citations in the response
+                if (sources && sources.length > 0) {
+                  const citations = sources.map((source: any) => ({
+                    url: source.url || source,
+                    title: source.title || source.url || 'Web Source',
+                    startIndex: 0,
+                    endIndex: 0,
+                  }));
+
+                  if (citations.length > 0) {
+                    dataStream.writeMessageAnnotation({
+                      type: 'search-results',
+                      citations,
+                    });
+                  }
                 }
-              }
 
-              await incrementAndLogTokenUsage(userId, usage.totalTokens);
-              dataStream.writeData('call completed');
-            },
-          });
+                await incrementAndLogTokenUsage(userId, usage.totalTokens);
+                dataStream.writeData('call completed');
+              },
+            });
 
-          result.mergeIntoDataStream(dataStream);
+            result.mergeIntoDataStream(dataStream);
+          } else {
+            // Use OpenAI's webSearchPreview tool (or fallback if no web search available)
+            console.log(`[Chat API] Using OpenAI webSearchPreview tool`);
+
+            const result = await streamText({
+              model: getResponsesModel() as any,
+              system: getChatSystemPrompt(contextString, currentDatetime),
+              maxSteps: 5,
+              messages: coreMessages,
+              tools: {
+                ...chatTools,
+                web_search_preview: getLLMProvider().tools.webSearchPreview({
+                  searchContextSize: deepSearch ? 'high' : 'medium',
+                }) as any, // Type cast for AI SDK v2 compatibility
+              },
+              onFinish: async ({ usage, sources }) => {
+                console.log('Token usage:', usage);
+                console.log('Search sources:', sources);
+
+                if (sources && sources.length > 0) {
+                  const citations = sources.map((source) => ({
+                    url: source.url,
+                    title: source.title || source.url,
+                    startIndex: 0,
+                    endIndex: 0,
+                  }));
+
+                  if (citations.length > 0) {
+                    dataStream.writeMessageAnnotation({
+                      type: 'search-results',
+                      citations,
+                    });
+                  }
+                }
+
+                await incrementAndLogTokenUsage(userId, usage.totalTokens);
+                dataStream.writeData('call completed');
+              },
+            });
+
+            result.mergeIntoDataStream(dataStream);
+          }
         } else {
           console.log('Chat using default model (no search)');
 

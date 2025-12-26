@@ -425,6 +425,70 @@ export function providerSupportsFeature(feature: 'vision' | 'webSearch' | 'reaso
   }
 }
 
+// =============================================================================
+// WEB SEARCH PROVIDER CONFIGURATION
+// =============================================================================
+
+/**
+ * Get the web search provider configuration
+ * Uses AI_WEBSEARCH_PROVIDER env var, defaults to 'perplexity' if main provider
+ * doesn't support web search, otherwise uses the main provider
+ */
+export function getWebSearchProvider(): AIProviderConfig {
+  const explicitProvider = process.env.AI_WEBSEARCH_PROVIDER?.toLowerCase() as AIProviderType;
+
+  // If explicitly set, use that provider
+  if (explicitProvider && AI_PROVIDERS[explicitProvider]) {
+    return AI_PROVIDERS[explicitProvider];
+  }
+
+  // If main provider supports web search, use it
+  const mainProvider = getCurrentProvider();
+  if (mainProvider.supportsWebSearch) {
+    return mainProvider;
+  }
+
+  // Default to Perplexity for web search (best for this use case)
+  return AI_PROVIDERS.perplexity;
+}
+
+/**
+ * Get the API key for the web search provider
+ */
+export function getWebSearchApiKey(): string {
+  const provider = getWebSearchProvider();
+
+  // Check provider-specific key first
+  const specificKey = process.env[provider.apiKeyEnvVar];
+  if (specificKey) {
+    return specificKey;
+  }
+
+  // Fall back to generic OPENAI_API_KEY
+  return process.env.OPENAI_API_KEY || '';
+}
+
+/**
+ * Get the default model for web search
+ * Can be overridden via AI_WEBSEARCH_MODEL env var
+ */
+export function getWebSearchModel(): string {
+  const customModel = process.env.AI_WEBSEARCH_MODEL;
+  if (customModel) {
+    return customModel;
+  }
+  return getWebSearchProvider().defaultModel;
+}
+
+/**
+ * Check if web search is available (has a configured provider with API key)
+ */
+export function isWebSearchAvailable(): boolean {
+  const provider = getWebSearchProvider();
+  const apiKey = getWebSearchApiKey();
+  return provider.supportsWebSearch && !!apiKey;
+}
+
 /**
  * Get price comparison for all providers (useful for UI display)
  */

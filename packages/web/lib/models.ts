@@ -9,10 +9,16 @@ import {
   getMaxInputTokens,
   AI_PROVIDERS,
   type AIProviderType,
+  // Web search provider functions
+  getWebSearchProvider,
+  getWebSearchApiKey,
+  getWebSearchModel as getWebSearchModelName,
+  isWebSearchAvailable,
 } from './ai-providers';
 
 // Re-export provider utilities for external use
 export { getCurrentProvider, getDefaultModel, AI_PROVIDERS, listProviders } from './ai-providers';
+export { getWebSearchProvider, isWebSearchAvailable } from './ai-providers';
 export type { AIProviderType, AIProviderConfig, AIModel } from './ai-providers';
 
 /**
@@ -169,7 +175,59 @@ export const getModelFromProvider = (providerType: AIProviderType, modelName?: s
   return provider(model) as LanguageModel;
 };
 
+// =============================================================================
+// WEB SEARCH PROVIDER
+// =============================================================================
+
+/**
+ * Create the web search LLM provider
+ * Uses Perplexity by default (best for web search), or configured provider
+ */
+const createWebSearchLLMProvider = () => {
+  const provider = getWebSearchProvider();
+  const apiKey = getWebSearchApiKey();
+
+  if (!apiKey) {
+    console.warn(`[models] WARNING: No API key found for web search provider ${provider.name}`);
+  }
+
+  // All web search providers (Perplexity, MiniMax, GLM) are OpenAI-compatible
+  return createOpenAI({
+    apiKey: apiKey,
+    baseURL: provider.baseUrl,
+  });
+};
+
+// Lazy-initialize web search provider
+let webSearchProvider: ReturnType<typeof createWebSearchLLMProvider> | null = null;
+
+const getWebSearchLLMProviderInstance = () => {
+  if (!webSearchProvider) {
+    webSearchProvider = createWebSearchLLMProvider();
+  }
+  return webSearchProvider;
+};
+
+/**
+ * Get the web search model for queries that need internet access
+ * Uses Perplexity Sonar Pro by default (native web search)
+ */
+export const getWebSearchModel = (): LanguageModel => {
+  const modelName = getWebSearchModelName();
+  const provider = getWebSearchLLMProviderInstance();
+  return provider(modelName) as LanguageModel;
+};
+
+/**
+ * Get the raw web search provider for advanced usage
+ */
+export const getWebSearchLLMProvider = () => {
+  return getWebSearchLLMProviderInstance();
+};
+
 // Log current configuration on module load
 const currentProvider = getCurrentProvider();
 const currentModel = getDefaultModel();
+const webSearchProviderConfig = getWebSearchProvider();
 console.log(`[models] Provider: ${currentProvider.name}, Model: ${currentModel}, Base URL: ${getProviderBaseUrl()}`);
+console.log(`[models] Web Search: ${webSearchProviderConfig.name}, Available: ${isWebSearchAvailable()}`);
